@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nombre    String?
+  rol       String   @default("viajero") // viajero | admin
+  creadoEn  DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  checkIns      CheckIn[]
+  valoraciones  Valoracion[]
+
+  @@map("usuarios")
+}
+
+model Establecimiento {
+  id           String   @id @default(cuid())
+  nombre       String
+  direccion    String
+  lat          Float
+  lng          Float
+  horario      String?
+  telefono     String?
+  fotoUrl      String?
+  tieneBano    Boolean  @default(false)
+  tieneAgua    Boolean  @default(false)
+  tieneRecarga Boolean  @default(false)
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  checkIns     CheckIn[]
+  valoraciones Valoracion[]
+
+  @@map("establecimientos")
+}
+
+model CheckIn {
+  id              String   @id @default(cuid())
+  usuarioId       String
+  establecimientoId String
+  valoracionId    String?
+  creadoEn        DateTime @default(now())
+
+  usuario         Usuario         @relation(fields: [usuarioId], references: [id])
+  establecimiento Establecimiento @relation(fields: [establecimientoId], references: [id])
+  valoracion      Valoracion?     @relation(fields: [valoracionId], references: [id])
+
+  @@unique([usuarioId, establecimientoId, creadoEn])
+  @@map("check_ins")
+}
+
+model Valoracion {
+  id              String   @id @default(cuid())
+  puntuacion      Int      // 1-5
+  etiquetas       String[] // ["baño_limpio", "agua_potable", "trato_amable", "recarga_disponible"]
+  comentario      String?
+  checkInId       String   @unique
+  creadoEn        DateTime @default(now())
+
+  checkIn         CheckIn        @relation(fields: [checkInId], references: [id], map: "fk_valoracion_checkin")
+  establecimiento Establecimiento @relation(fields: [establecimientoId], references: [id])
+  establecimientoId String
+
+  @@map("valoraciones")
+}
