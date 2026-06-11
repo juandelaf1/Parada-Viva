@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="[docs/img/parada_viva_banner.png](https://github.com/juandelaf1/Parada-Viva/blob/master/docs/Parada_viva_banner.png)" alt="Parada Viva Banner" width="800">
+  <img src="docs/Parada_viva_banner.png" alt="Parada Viva Banner" width="800">
 </p>
 
 # PARADA VIVA — Rural Commerce Network for Conscious Travelers
