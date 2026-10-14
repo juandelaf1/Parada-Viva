@@ -4,6 +4,15 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { divIcon } from "leaflet";
 
+type Servicio = {
+  id: string;
+  nombre: string;
+  icono: string;
+  incluido: boolean;
+  precio?: number;
+  descripcion: string;
+};
+
 type Establecimiento = {
   id: string;
   nombre: string;
@@ -11,11 +20,7 @@ type Establecimiento = {
   lat: number;
   lng: number;
   horario: string | null;
-  servicios: {
-    bano: boolean;
-    agua: boolean;
-    recarga: boolean;
-  };
+  servicios: Servicio[];
   valoracionMedia: number | null;
   totalVisitas: number;
 };
@@ -24,17 +29,16 @@ type Props = {
   establecimientos: Establecimiento[];
 };
 
-function iconoPorServicios(s: { bano: boolean; agua: boolean; recarga: boolean }) {
-  let icon = "📍";
-  if (s.bano && s.agua && s.recarga) icon = "🏪";
-  else if (s.bano && s.agua) icon = "🚽💧";
-  else if (s.bano) icon = "🚽";
-  else if (s.agua) icon = "💧";
-  return icon;
+function iconoPrincipal(s: Servicio[]) {
+  const tiene = (id: string) => s.some((x) => x.id === id && x.incluido);
+  if (tiene("pernocta") && tiene("bano") && tiene("agua")) return "🏠";
+  if (tiene("bano") && tiene("agua")) return "🚽💧";
+  if (tiene("bano")) return "🚽";
+  if (tiene("agua")) return "💧";
+  return "📍";
 }
 
 export default function MapaClient({ establecimientos }: Props) {
-  // Centro por defecto: Asturias interior
   const centro: [number, number] = [43.12, -6.22];
 
   return (
@@ -49,28 +53,35 @@ export default function MapaClient({ establecimientos }: Props) {
           attribution='&copy; <a href="https://openstreetmap.org">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-
         {establecimientos.map((e) => (
           <Marker
             key={e.id}
             position={[e.lat, e.lng]}
             icon={divIcon({
               className: "text-2xl",
-              html: iconoPorServicios(e.servicios),
+              html: iconoPrincipal(e.servicios),
             })}
           >
             <Popup>
-              <div className="text-sm space-y-1">
+              <div className="text-sm space-y-2 w-56">
                 <strong className="text-base">{e.nombre}</strong>
                 <p className="text-stone-500">{e.direccion}</p>
                 {e.horario && <p>🕐 {e.horario}</p>}
-                <p>
-                  {e.servicios.bano && "🚽 "}
-                  {e.servicios.agua && "💧 "}
-                  {e.servicios.recarga && "🔌 "}
-                </p>
+                <div className="border-t pt-1 space-y-1">
+                  {e.servicios.map((s) => (
+                    <p key={s.id} className="flex items-center gap-1">
+                      <span>{s.icono}</span>
+                      <span>{s.nombre}</span>
+                      {!s.incluido && s.precio !== undefined && (
+                        <span className="text-stone-400 ml-auto">{s.precio}€</span>
+                      )}
+                    </p>
+                  ))}
+                </div>
                 {e.valoracionMedia && (
-                  <p>⭐ {e.valoracionMedia} · {e.totalVisitas} visitas</p>
+                  <p className="text-stone-400 text-xs">
+                    ⭐ {e.valoracionMedia} · {e.totalVisitas} visitas
+                  </p>
                 )}
               </div>
             </Popup>

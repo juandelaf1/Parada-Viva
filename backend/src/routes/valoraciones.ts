@@ -17,7 +17,6 @@ valoracionesRouter.post("/", async (req: Request, res: Response) => {
     return;
   }
 
-  // Verificar que el check-in existe
   const checkIn = await prisma.checkIn.findUnique({
     where: { id: checkInId },
   });
@@ -27,8 +26,11 @@ valoracionesRouter.post("/", async (req: Request, res: Response) => {
     return;
   }
 
-  // Verificar que no tenga ya valoración
-  if (checkIn.valoracionId) {
+  const valoracionExistente = await prisma.valoracion.findUnique({
+    where: { checkInId },
+  });
+
+  if (valoracionExistente) {
     res.status(409).json({ error: "Este check-in ya tiene valoración" });
     return;
   }
@@ -38,15 +40,9 @@ valoracionesRouter.post("/", async (req: Request, res: Response) => {
       checkInId,
       establecimientoId,
       puntuacion,
-      etiquetas: etiquetas || [],
+      etiquetas: JSON.stringify(etiquetas || []),
       comentario: comentario || null,
     },
-  });
-
-  // Actualizar check-in con id de valoracion
-  await prisma.checkIn.update({
-    where: { id: checkInId },
-    data: { valoracionId: valoracion.id },
   });
 
   res.status(201).json(valoracion);
@@ -69,5 +65,9 @@ valoracionesRouter.get("/establecimiento/:id", async (req: Request, res: Respons
     take: 20,
   });
 
-  res.json(valoraciones);
+  const resultado = valoraciones.map((v) => ({
+    ...v,
+    etiquetas: JSON.parse(v.etiquetas as string),
+  }));
+  res.json(resultado);
 });

@@ -3,9 +3,18 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 
-const MapaClient = dynamic(() => import("../components/MapaClient"), {
+const MapaClient = dynamic(() => import("@/components/MapaClient"), {
   ssr: false,
 });
+
+type Servicio = {
+  id: string;
+  nombre: string;
+  icono: string;
+  incluido: boolean;
+  precio?: number;
+  descripcion: string;
+};
 
 type Establecimiento = {
   id: string;
@@ -14,11 +23,7 @@ type Establecimiento = {
   lat: number;
   lng: number;
   horario: string | null;
-  servicios: {
-    bano: boolean;
-    agua: boolean;
-    recarga: boolean;
-  };
+  servicios: Servicio[];
   valoracionMedia: number | null;
   totalVisitas: number;
 };
@@ -28,7 +33,7 @@ export default function MapaPage() {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/establecimientos`)
+    fetch("http://localhost:3001/api/establecimientos")
       .then((res) => res.json())
       .then((data) => {
         setEstablecimientos(data);

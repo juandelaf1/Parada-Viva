@@ -2,18 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { getUsuario } from "@/lib/auth";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const API = "http://localhost:3001";
+
+type Servicio = {
+  id: string;
+  nombre: string;
+  icono: string;
+  incluido: boolean;
+  precio?: number;
+  descripcion: string;
+};
 
 type Establecimiento = {
   id: string;
   nombre: string;
   direccion: string;
-  servicios: { bano: boolean; agua: boolean; recarga: boolean };
+  servicios: Servicio[];
   valoracionMedia: number | null;
 };
 
@@ -21,43 +27,42 @@ export default function CheckInPage() {
   const params = useParams();
   const router = useRouter();
   const [establecimiento, setEstablecimiento] = useState<Establecimiento | null>(null);
-  const [usuario, setUsuario] = useState<any>(null);
   const [checkInId, setCheckInId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
 
   const establecimientoId = params.id as string;
+  const usuario = getUsuario();
 
   useEffect(() => {
-    // Cargar establecimiento
-    fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/establecimientos/${establecimientoId}`
-    )
-      .then((res) => res.json())
-      .then((data) => setEstablecimiento(data))
-      .catch(() => setError("No se pudo cargar el establecimiento"));
+    if (!usuario) {
+      router.push(`/registro?redirect=/check-in/${establecimientoId}`);
+      return;
+    }
 
-    // Verificar sesión
-    supabase.auth.getSession().then(({ data }) => {
-      setUsuario(data.session?.user ?? null);
-      setCargando(false);
-    });
-  }, [establecimientoId]);
+    fetch(`${API}/api/establecimientos/${establecimientoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setEstablecimiento(data);
+        setCargando(false);
+      })
+      .catch(() => {
+        setError("No se pudo cargar el establecimiento");
+        setCargando(false);
+      });
+  }, [establecimientoId, router, usuario]);
 
   const handleCheckIn = async () => {
     if (!usuario || !establecimiento) return;
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/check-ins`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usuarioId: usuario.id,
-          establecimientoId: establecimiento.id,
-        }),
-      }
-    );
+    const res = await fetch(`${API}/api/check-ins`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usuarioId: usuario.id,
+        establecimientoId: establecimiento.id,
+      }),
+    });
 
     if (res.status === 409) {
       setError("Ya has hecho check-in aquí hoy");
@@ -76,7 +81,7 @@ export default function CheckInPage() {
   const handleValoracion = async (puntuacion: number) => {
     if (!checkInId || !establecimiento) return;
 
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/valoraciones`, {
+    await fetch(`${API}/api/valoraciones`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -89,28 +94,12 @@ export default function CheckInPage() {
     router.push("/mapa");
   };
 
+  if (!usuario) return null;
+
   if (cargando) {
     return (
       <main className="min-h-screen flex items-center justify-center text-stone-400">
         Cargando...
-      </main>
-    );
-  }
-
-  if (!usuario) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-6">
-        <div className="text-center space-y-4">
-          <p className="text-stone-600">
-            Inicia sesión para hacer check-in en este comercio
-          </p>
-          <a
-            href={`/registro?redirect=/check-in/${establecimientoId}`}
-            className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg"
-          >
-            Iniciar sesión
-          </a>
-        </div>
       </main>
     );
   }
@@ -120,10 +109,7 @@ export default function CheckInPage() {
       <main className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <p className="text-red-600">{error}</p>
-          <a
-            href="/mapa"
-            className="text-emerald-600 underline"
-          >
+          <a href="/mapa" className="text-emerald-600 underline">
             Volver al mapa
           </a>
         </div>
@@ -136,10 +122,10 @@ export default function CheckInPage() {
       <main className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center space-y-6">
           <h1 className="text-2xl font-bold text-emerald-700">
-            ¡Check-in completado! 🎉
+            Check-in completado
           </h1>
           <p className="text-stone-600">
-            ¿Cómo fue tu experiencia en {establecimiento?.nombre}?
+            Como fue tu experiencia en {establecimiento?.nombre}?
           </p>
           <div className="flex gap-2 justify-center">
             {[1, 2, 3, 4, 5].map((n) => (
@@ -148,7 +134,7 @@ export default function CheckInPage() {
                 onClick={() => handleValoracion(n)}
                 className="text-3xl hover:scale-125 transition"
               >
-                {n <= 3 ? "😐" : "😊"}
+                {n <= 3 ? "\u{1F610}" : "\u{1F60A}"}
               </button>
             ))}
           </div>
@@ -174,7 +160,7 @@ export default function CheckInPage() {
           onClick={handleCheckIn}
           className="bg-emerald-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-emerald-700 transition"
         >
-          Estoy aquí ✅
+          Estoy aqui
         </button>
         <a
           href="/mapa"

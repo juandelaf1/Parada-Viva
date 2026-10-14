@@ -1,10 +1,10 @@
 import { Router, Request, Response } from "express";
 import prisma from "../db.js";
 
-export const estabelecimentosRouter = Router();
+export const router = Router();
 
 // GET /api/establecimientos - listar todos los activos
-estabelecimentosRouter.get("/", async (_req: Request, res: Response) => {
+router.get("/", async (_req: Request, res: Response) => {
   const establecimientos = await prisma.establecimiento.findMany({
     where: { activo: true },
     include: {
@@ -31,11 +31,7 @@ estabelecimentosRouter.get("/", async (_req: Request, res: Response) => {
       horario: e.horario,
       telefono: e.telefono,
       fotoUrl: e.fotoUrl,
-      servicios: {
-        bano: e.tieneBano,
-        agua: e.tieneAgua,
-        recarga: e.tieneRecarga,
-      },
+      servicios: JSON.parse(e.servicios as string),
       valoracionMedia: media ? Math.round(media * 10) / 10 : null,
       totalVisitas: e._count.checkIns,
     };
@@ -45,7 +41,7 @@ estabelecimentosRouter.get("/", async (_req: Request, res: Response) => {
 });
 
 // GET /api/establecimientos/:id
-estabelecimientosRouter.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const establecimiento = await prisma.establecimiento.findUnique({
@@ -70,5 +66,14 @@ estabelecimientosRouter.get("/:id", async (req: Request, res: Response) => {
     return;
   }
 
-  res.json(establecimiento);
+  const resultado = {
+    ...establecimiento,
+    servicios: JSON.parse(establecimiento.servicios as string),
+    valoraciones: establecimiento.valoraciones.map((v) => ({
+      ...v,
+      etiquetas: JSON.parse(v.etiquetas as string),
+    })),
+  };
+
+  res.json(resultado);
 });
