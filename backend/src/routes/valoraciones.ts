@@ -1,22 +1,27 @@
 import { Router, Request, Response } from "express";
+import { z } from "zod";
 import prisma from "../db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { validateBody } from "../utils/validate.js";
+import { rateLimit } from "../utils/rateLimit.js";
+
+const ValoracionCreate = z.object({
+  checkInId: z.string().min(1),
+  establecimientoId: z.string().min(1),
+  puntuacion: z.number().int().min(1).max(5),
+  etiquetas: z.array(z.string().max(40)).max(12).optional().default([]),
+  comentario: z.string().max(1000).optional().nullable(),
+});
 
 export const valoracionesRouter = Router();
 
 // POST /api/valoraciones - dejar valoración
-valoracionesRouter.post("/", asyncHandler(async (req: Request, res: Response) => {
-  const { checkInId, puntuacion, etiquetas, comentario, establecimientoId } = req.body;
-
-  if (!checkInId || !puntuacion || !establecimientoId) {
-    res.status(400).json({ error: "Faltan campos requeridos" });
-    return;
-  }
-
-  if (puntuacion < 1 || puntuacion > 5) {
-    res.status(400).json({ error: "Puntuación debe ser entre 1 y 5" });
-    return;
-  }
+valoracionesRouter.post(
+  "/",
+  rateLimit({ windowMs: 60_000, max: 30 }),
+  validateBody(ValoracionCreate),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { checkInId, puntuacion, etiquetas, comentario, establecimientoId } = req.body;
 
   const checkIn = await prisma.checkIn.findUnique({
     where: { id: checkInId },
@@ -46,7 +51,7 @@ valoracionesRouter.post("/", asyncHandler(async (req: Request, res: Response) =>
     },
   });
 
-  res.status(201).json(valoracion);
+  res.status(201).json({ ...valoracion, contract_version: "parada-viva-api/0.1" });
 }));
 
 // GET /api/valoraciones/establecimiento/:id
