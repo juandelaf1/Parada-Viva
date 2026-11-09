@@ -6,6 +6,7 @@ import { authRouter } from "./routes/auth.js";
 import { router as estabelecimentosRouter } from "./routes/estabelecimentos.js";
 import { checkInsRouter } from "./routes/check-ins.js";
 import { valoracionesRouter } from "./routes/valoraciones.js";
+import { reportsRouter } from "./routes/reports.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -38,8 +39,11 @@ app.get("/api/health", (_req, res) => {
     contract_version: "parada-viva-api/0.1",
     capabilities: {
       places: true,
+      nearby: "/api/establecimientos/nearby",
       check_ins: true,
-      auth: true,
+      qr_signed: true,
+      auth: "stub (D8)",
+      reports: "/api/reports/* (x-report-key, agregado sin PII)",
       openapi: null,
       ready: "/api/ready",
     },
@@ -71,6 +75,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/establecimientos", estabelecimentosRouter);
 app.use("/api/check-ins", checkInsRouter);
 app.use("/api/valoraciones", valoracionesRouter);
+app.use("/api/reports", reportsRouter);
 
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "not_found", contract_version: "parada-viva-api/0.1" });
