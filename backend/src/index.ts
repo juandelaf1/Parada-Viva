@@ -12,7 +12,18 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok" });
+  res.json({
+    status: "ok",
+    service: "parada-viva-api",
+    version: "0.1.0",
+    contract_version: "parada-viva-api/0.1",
+    capabilities: {
+      places: true,
+      check_ins: true,
+      auth: true,
+      openapi: null,
+    },
+  });
 });
 
 app.use("/api/auth", authRouter);
@@ -20,6 +31,10 @@ app.use("/api/establecimientos", estabelecimentosRouter);
 app.use("/api/check-ins", checkInsRouter);
 app.use("/api/valoraciones", valoracionesRouter);
 
-app.listen(PORT, () => {
-  console.log(`Parada Viva API en puerto ${PORT}`);
-});
+export { app };
+
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`Parada Viva API en puerto ${PORT}`);
+  });
+}
