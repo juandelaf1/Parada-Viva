@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Parada Viva API (stub)
+  version: 0.1.0
+  description: |
+    Contrato inicial (stub, no generado automáticamente). Fuente de verdad operativa: backend Express.
+    Ver CONTRACT_NOTES.md y docs/PROVENANCE_CONVENTION.md (raíz workspace). P1/P8.
+    Procedencia/consentimiento/PII: no exponer datos personales en respuestas públicas; ofuscar ubicación sensible cuando aplique.
+servers:
+  - url: http://localhost:4000
+paths:
+  /api/health:
+    get:
+      summary: Health + contrato
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  service: { type: string }
+                  version: { type: string }
+                  contract_version: { type: string, example: parada-viva-api/0.1 }
+                  capabilities: { type: object }
+  /api/establecimientos:
+    get: { summary: List places (stub), responses: { '200': { description: OK } } }
+  /api/check-ins:
+    post: { summary: Create check-in (stub, revisar auth/consentimiento), responses: { '201': { description: Created } } }
+  /api/valoraciones:
+    post: { summary: Create rating (stub), responses: { '201': { description: Created } } }
+  /api/auth:
+    post: { summary: Auth (stub), responses: { '200': { description: OK } } }
+components:
+  schemas:
+    Procedencia:
+      type: string
+      description: observado | declarado | estimado | sintetico (P1)
