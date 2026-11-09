@@ -2,63 +2,45 @@
   <img src="docs/Parada_viva_banner.png" alt="Parada Viva Banner" width="800">
 </p>
 
-# PARADA VIVA — Rural Commerce Network for Conscious Travelers
+# Parada Viva
 
-![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-06B6D4?logo=tailwindcss&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
-![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
-![Leaflet](https://img.shields.io/badge/Leaflet-199900?logo=leaflet&logoColor=white)
-![PWA](https://img.shields.io/badge/PWA-5A0FC8?logo=pwa&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+Concepto de red colaborativa para conectar comercios/servicios rurales con viajeros (autocaravana/vanlife) mediante intercambio simple y acuerdos comerciales claros.
 
-> **Connecting rural businesses with vanlifers. Consume minimum 1€, use bathroom, water, and power.**
+> **Estado actual (verificado, honesto):** base técnica **revivida** (no MVP operativo con partners/datos reales). El repositorio contiene estructura backend (Node.js + Express + TypeScript + Prisma) y utilidades de arranque; se añadieron contratos/ops mínimos (`/api/health`, `/api/ready`, `contract_version`, CORS configurable, headers de seguridad/HSTS opcional) y documentación de contrato/OpenAPI stub. **No afirmar** despliegue, partners, cobertura geográfica operativa ni datos reales sin evidencia.
 
----
+## Visión (backlog, no implementado por completo)
 
-## Elevator Pitch
+- Descubrimiento en mapa + check-in (p. ej. QR) + valoraciones, con foco en simplicidad (sin complejidad innecesaria).
+- Fases propuestas (Asturias interior → reputación/suscripción → expansión): **pendientes**; requieren partners, datos reales, auth/PII, privacidad (zonas/ofuscación) y pruebas de producto.
 
-**Problem**: Rural bars, shops, and gas stations struggle with low foot traffic. Vanlifers and caravan travelers need basic services (bathrooms, water, electricity) but often pass through without stopping. Both sides lose — businesses lack customers, travelers lack services.
+## Stack (actual en repo / objetivo)
 
-**Hypothesis**: A simple PWA with map-based discovery and QR check-in can create a fair exchange: travelers find services, businesses get customers. No AI, no complexity — just human connection and simple commercial agreements.
+| Capa | Estado |
+|---|---|
+| Backend API | Node.js + Express + TypeScript + Prisma (presente en `backend/`) |
+| Base de datos | Prisma/SQLite en desarrollo local (según config); PostgreSQL/Supabase como objetivo — verificar antes de afirmar operativo |
+| Frontend / PWA / mapas / auth / pagos | **objetivo/planeado** en partes; no asumir implementado sin verificación |
 
-**Solution**: Parada Viva — a collaborative network connecting rural businesses with caravan travelers. MVP covers **Asturias interior** with plans to expand to **Mallorca interior**. Built with Next.js + Tailwind + PWA for mobile-first experience.
+## Uso rápido (backend, local)
 
----
+```bash
+cd backend
+npm install
+cp .env.example .env   # ajustar DATABASE_URL/CORS_ORIGINS/HSTS
+npm run dev            # o scripts definidos en package.json
+# Health: GET /api/health  Ready: GET /api/ready
+```
 
-## Philosophy
+Contratos/notas: `docs/CONTRACT_NOTES.md`, `docs/openapi-stub.yaml`.
 
-- **Give life to villages without customers**: rural bars need traffic, vanlifers need services. The exchange benefits both.
-- **Conscious traveler**: our user chooses this lifestyle, respects the environment, and wants to support local economy.
-- **No AI, no unnecessary complexity**: the problem is human connection and simple commercial agreements, not algorithms.
+## Limitaciones
 
-## Roadmap
+- Sin partners/datos reales ni cobertura operativa verificada.
+- Requiere decisiones de producto (D8): auth/PII, privacidad/ofuscación, modelo de datos real, pruebas y despliegue.
+- Seguridad endurecida a nivel básico de headers/probes; no sustituye gestión de secretos, TLS, auditoría central ni controles completos de producción.
 
-| Phase | What | Where | Status |
-|-------|------|-------|--------|
-| Sprint 1 | MVP: map + QR check-in + ratings | Asturias interior | **In progress** |
-| Sprint 2 | Reputation system + premium subscription | Asturias interior | Pending |
-| Sprint 3 | Expansion | Mallorca interior | Pending |
-
-## Tech Stack
-
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Frontend | Next.js + Tailwind + PWA | Single codebase, works as mobile app |
-| Backend | Node.js + Express + Prisma | Fast development, type-safe |
-| Database | PostgreSQL (Supabase) | Scalable, free to start |
-| Maps | Leaflet + OpenStreetMap | No API costs, open data |
-| Auth | Supabase Auth | Magic link (no passwords) |
-| Payments | Stripe | Premium subscription only |
-| Testing | Vitest (unit) + Playwright (e2e) | |
-
----
-
-## Author
+## Autoría
 
 **Juan de la Fuente** — [@juandelaf1](https://github.com/juandelaf1)
 
-juandelafuentelarrocca@gmail.com
+Licencia: MIT (ver `LICENSE` si aplica).
