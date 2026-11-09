@@ -28,3 +28,9 @@ export function obfuscateCoord(value: number, decimals = Number(process.env.COOR
 export function obfuscateLatLng(lat: number, lng: number, decimals?: number) {
   return { lat: obfuscateCoord(lat, decimals), lng: obfuscateCoord(lng, decimals) };
 }
+
+// Aplica ofuscación solo si se habilita explícitamente (no romper mapa). Por defecto coords públicas precisas.
+export function maybeObfuscateLatLng(lat: number, lng: number) {
+  if (String(process.env.OBFUSCATE_PUBLIC_COORDS || "").toLowerCase() !== "true") return { lat, lng };
+  return obfuscateLatLng(lat, lng);
+}

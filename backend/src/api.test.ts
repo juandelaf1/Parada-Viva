@@ -52,4 +52,18 @@ describe("contratos API (sin dependencia de BD)", () => {
     expect(res.status).toBe(404);
     expect(res.body.contract_version).toBe("parada-viva-api/0.1");
   });
+
+  it("429 rate limit (reports summary, sin acceso BD)", async () => {
+    const prev = process.env.REPORT_API_KEY;
+    process.env.REPORT_API_KEY = "test-key";
+    const app = await getApp();
+    let last = 401;
+    for (let i = 0; i < 35; i++) {
+      const res = await request(app).get("/api/reports/summary").set("x-report-key", "wrong");
+      last = res.status;
+      if (last === 429) break;
+    }
+    expect(last).toBe(429);
+    if (prev) process.env.REPORT_API_KEY = prev; else delete process.env.REPORT_API_KEY;
+  });
 });

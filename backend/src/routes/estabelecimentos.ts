@@ -3,46 +3,78 @@ import { z } from "zod";
 import prisma from "../db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { rateLimit } from "../utils/rateLimit.js";
-import { haversineKm, bbox } from "../utils/geo.js";
+import { haversineKm, bbox, maybeObfuscateLatLng } from "../utils/geo.js";
 
 export const router = Router();
 
-// GET /api/establecimientos - listar todos los activos
-router.get("/", asyncHandler(async (_req: Request, res: Response) => {
-  const establecimientos = await prisma.establecimiento.findMany({
-    where: { activo: true },
-    include: {
-      valoraciones: {
-        select: { puntuacion: true },
+// GET /api/establecimientos - listar activos (array compat) + filtros/paginación opcionales
+router.get(
+  "/",
+  rateLimit({ windowMs: 60_000, max: 120 }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const q = z
+      .object({
+        limit: z.coerce.number().int().positive().max(200).default(200),
+        offset: z.coerce.number().int().min(0).max(10000).default(0),
+        servicios: z.string().optional(),
+      })
+      .safeParse(req.query);
+    if (!q.success) {
+      res.status(400).json({
+        error: "validation_error",
+        details: q.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+        contract_version: "parada-viva-api/0.1",
+      });
+      return;
+    }
+    const { limit, offset, servicios } = q.data;
+    const wanted = (servicios || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+      .map((s) => (s === "electricidad" ? "recarga" : s === "baño" || s === "ba\u00f1o" ? "bano" : s));
+
+    const establecimientos = await prisma.establecimiento.findMany({
+      where: { activo: true },
+      include: {
+        valoraciones: { select: { puntuacion: true } },
+        _count: { select: { checkIns: true } },
       },
-      _count: { select: { checkIns: true } },
-    },
-  });
+    });
 
-  const resultado = establecimientos.map((e) => {
-    const media =
-      e.valoraciones.length > 0
-        ? e.valoraciones.reduce((sum, v) => sum + v.puntuacion, 0) /
-          e.valoraciones.length
-        : null;
-
-    return {
-      id: e.id,
-      nombre: e.nombre,
-      direccion: e.direccion,
-      lat: e.lat,
-      lng: e.lng,
-      horario: e.horario,
-      telefono: e.telefono,
-      fotoUrl: e.fotoUrl,
-      servicios: JSON.parse(e.servicios as string),
-      valoracionMedia: media ? Math.round(media * 10) / 10 : null,
-      totalVisitas: e._count.checkIns,
-    };
-  });
-
-  res.json(resultado);
-}));
+    let resultado = establecimientos.map((e) => {
+      const media =
+        e.valoraciones.length > 0
+          ? e.valoraciones.reduce((sum, v) => sum + v.puntuacion, 0) / e.valoraciones.length
+          : null;
+      const coords = maybeObfuscateLatLng(e.lat, e.lng);
+      return {
+        id: e.id,
+        nombre: e.nombre,
+        direccion: e.direccion,
+        lat: coords.lat,
+        lng: coords.lng,
+        horario: e.horario,
+        telefono: e.telefono,
+        fotoUrl: e.fotoUrl,
+        servicios: JSON.parse(e.servicios as string),
+        valoracionMedia: media ? Math.round(media * 10) / 10 : null,
+        totalVisitas: e._count.checkIns,
+      };
+    });
+    if (wanted.length) {
+      resultado = resultado.filter((e) => {
+        const ids = new Set((e.servicios || []).map((s: any) => String(s.id || "").toLowerCase()));
+        return wanted.every((w) => ids.has(w));
+      });
+    }
+    const total = resultado.length;
+    resultado = resultado.slice(offset, offset + limit);
+    res.setHeader("X-Contract-Version", "parada-viva-api/0.1");
+    res.setHeader("X-Total-Count", String(total));
+    res.json(resultado);
+  })
+);
 
 // GET /api/establecimientos/nearby?lat=&lng=&radiusKm=&limit= (MVP mapa; procedencia calculada)
 router.get(
@@ -85,12 +117,13 @@ router.get(
     const items = rows
       .map((e) => {
         const distanceKm = haversineKm(lat, lng, e.lat, e.lng);
+        const coords = maybeObfuscateLatLng(e.lat, e.lng);
         return {
           id: e.id,
           nombre: e.nombre,
           direccion: e.direccion,
-          lat: e.lat,
-          lng: e.lng,
+          lat: coords.lat,
+          lng: coords.lng,
           servicios: JSON.parse(e.servicios as string),
           distanceKm: Math.round(distanceKm * 100) / 100,
         };
