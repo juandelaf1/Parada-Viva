@@ -54,26 +54,38 @@ valoracionesRouter.post(
   res.status(201).json({ ...valoracion, contract_version: "parada-viva-api/0.1" });
 }));
 
-// GET /api/valoraciones/establecimiento/:id
-valoracionesRouter.get("/establecimiento/:id", asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+// GET /api/valoraciones/establecimiento/:id?limit=&offset=
+valoracionesRouter.get(
+  "/establecimiento/:id",
+  rateLimit({ windowMs: 60_000, max: 120 }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!id) { res.status(400).json({ error: "id requerido", contract_version: "parada-viva-api/0.1" }); return; }
+    const q = z.object({
+      limit: z.coerce.number().int().positive().max(100).default(20),
+      offset: z.coerce.number().int().min(0).max(10000).default(0),
+    }).safeParse(req.query);
+    const { limit, offset } = q.success ? q.data : { limit: 20, offset: 0 };
 
-  const valoraciones = await prisma.valoracion.findMany({
-    where: { establecimientoId: id },
-    include: {
-      checkIn: {
-        include: {
-          usuario: { select: { nombre: true } },
+    const valoraciones = await prisma.valoracion.findMany({
+      where: { establecimientoId: id },
+      include: {
+        checkIn: {
+          include: {
+            usuario: { select: { nombre: true } },
+          },
         },
       },
-    },
-    orderBy: { creadoEn: "desc" },
-    take: 20,
-  });
+      orderBy: { creadoEn: "desc" },
+      skip: offset,
+      take: limit,
+    });
 
-  const resultado = valoraciones.map((v) => ({
-    ...v,
-    etiquetas: JSON.parse(v.etiquetas as string),
-  }));
-  res.json(resultado);
-}));
+    const resultado = valoraciones.map((v) => ({
+      ...v,
+      etiquetas: JSON.parse(v.etiquetas as string),
+    }));
+    res.setHeader("X-Contract-Version", "parada-viva-api/0.1");
+    res.json(resultado);
+  })
+);

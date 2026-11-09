@@ -157,6 +157,59 @@ reportsRouter.get(
   })
 );
 
+// GET /api/reports/activity?from=&to=&bucket=day|month&format=json|csv — series agregada (sin PII)
+reportsRouter.get(
+  "/activity",
+  rateLimit({ windowMs: 60_000, max: 30 }),
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!requireReportKey(req, res)) return;
+    const q = z.object({
+      from: z.string().datetime().optional(),
+      to: z.string().datetime().optional(),
+      bucket: z.enum(["day", "month"]).default("day"),
+      format: z.enum(["json", "csv"]).default("json"),
+    }).safeParse(req.query);
+    if (!q.success) {
+      res.status(400).json({ error: "validation_error", details: q.error.issues, contract_version: "parada-viva-api/0.1" });
+      return;
+    }
+    const { from, to, bucket, format } = q.data;
+    const where: any = {};
+    if (from || to) {
+      where.creadoEn = {};
+      if (from) where.creadoEn.gte = new Date(from);
+      if (to) where.creadoEn.lte = new Date(to);
+    }
+    // Agregación portable en JS (MVP; optimizar con SQL por dialecto al escalar)
+    const rows = await prisma.checkIn.findMany({ where, select: { creadoEn: true } });
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      const d = r.creadoEn;
+      const key = bucket === "month"
+        ? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`
+        : d.toISOString().slice(0, 10);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const items = Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([period, check_ins]) => ({ period, check_ins }));
+    if (format === "csv") {
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", "attachment; filename=parada-viva-activity-report.csv");
+      res.send(toCsv(items));
+      return;
+    }
+    res.json({
+      contract_version: "parada-viva-api/0.1",
+      procedencia: "agregado_servidor (serie temporal, sin PII; puede incluir sintético/demo)",
+      pii: "none",
+      range: { from: from || null, to: to || null },
+      bucket,
+      total_check_ins: items.reduce((s, i) => s + i.check_ins, 0),
+      count: items.length,
+      items,
+    });
+  })
+);
+
 // GET /api/reports/establishments?format=json|csv — agregado por establecimiento (sin PII)
 reportsRouter.get(
   "/establishments",

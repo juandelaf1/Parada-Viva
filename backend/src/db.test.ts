@@ -132,4 +132,15 @@ describe("API con BD de test (happy paths)", () => {
     expect(res.body.items.every((i: any) => i.comentario == null && i.usuario == null && i.email == null)).toBe(true);
     expect(res.body.contract_version).toBe("parada-viva-api/0.1");
   });
+
+  it("reports activity (serie agregada, sin PII): con clave válida", async () => {
+    const app = await getApp();
+    const res = await request(app)
+      .get("/api/reports/activity?bucket=day")
+      .set("x-report-key", "test-report-key");
+    expect(res.status).toBe(200);
+    expect(res.body.pii).toBe("none");
+    expect(Array.isArray(res.body.items)).toBe(true);
+    expect(res.body.bucket).toBe("day");
+  });
 });
