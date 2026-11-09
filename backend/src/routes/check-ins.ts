@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import QRCode from "qrcode";
 import prisma from "../db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { validateBody } from "../utils/validate.js";
@@ -91,7 +92,35 @@ checkInsRouter.get(
     take: 50,
   });
 
-    res.setHeader("X-Contract-Version", "parada-viva-api/0.1");
+      res.setHeader("X-Contract-Version", "parada-viva-api/0.1");
     res.json(checkIns);
+  })
+);
+
+// GET /api/check-ins/qr/:establecimientoId - QR para flujo de check-in (MVP; token firmado en backlog D8)
+checkInsRouter.get(
+  "/qr/:establecimientoId",
+  rateLimit({ windowMs: 60_000, max: 60 }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { establecimientoId } = req.params;
+    const est = await prisma.establecimiento.findUnique({
+      where: { id: establecimientoId },
+      select: { id: true, nombre: true, activo: true },
+    });
+    if (!est || !est.activo) {
+      res.status(404).json({ error: "Establecimiento no encontrado o inactivo", contract_version: "parada-viva-api/0.1" });
+      return;
+    }
+    const base = process.env.PUBLIC_BASE_URL || "https://parada-viva.local";
+    const payload = `${base}/check-in/${encodeURIComponent(est.id)}`;
+    const dataUrl = await QRCode.toDataURL(payload, { margin: 1, width: 256 });
+    res.json({
+      establecimientoId: est.id,
+      nombre: est.nombre,
+      payload,
+      qr_data_url: dataUrl,
+      procedencia: "generado_servidor (MVP, sin firma; rotación/firmado en backlog)",
+      contract_version: "parada-viva-api/0.1",
+    });
   })
 );
