@@ -1,10 +1,11 @@
 import { Router, Request, Response } from "express";
 import prisma from "../db.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const router = Router();
 
 // GET /api/establecimientos - listar todos los activos
-router.get("/", async (_req: Request, res: Response) => {
+router.get("/", asyncHandler(async (_req: Request, res: Response) => {
   const establecimientos = await prisma.establecimiento.findMany({
     where: { activo: true },
     include: {
@@ -38,10 +39,10 @@ router.get("/", async (_req: Request, res: Response) => {
   });
 
   res.json(resultado);
-});
+}));
 
 // GET /api/establecimientos/:id
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const establecimiento = await prisma.establecimiento.findUnique({
@@ -76,4 +77,4 @@ router.get("/:id", async (req: Request, res: Response) => {
   };
 
   res.json(resultado);
-});
+}));

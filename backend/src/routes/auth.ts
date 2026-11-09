@@ -1,9 +1,10 @@
 import { Router, Request, Response } from "express";
 import prisma from "../db.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const authRouter = Router();
 
-authRouter.post("/login", async (req: Request, res: Response) => {
+authRouter.post("/login", asyncHandler(async (req: Request, res: Response) => {
   const { email, nombre } = req.body;
 
   if (!email) {
@@ -20,9 +21,9 @@ authRouter.post("/login", async (req: Request, res: Response) => {
   }
 
   res.json(usuario);
-});
+}));
 
-authRouter.get("/me", async (req: Request, res: Response) => {
+authRouter.get("/me", asyncHandler(async (req: Request, res: Response) => {
   const email = req.headers["x-user-email"] as string;
 
   if (!email) {
@@ -38,4 +39,4 @@ authRouter.get("/me", async (req: Request, res: Response) => {
   }
 
   res.json(usuario);
-});
+}));

@@ -1,10 +1,11 @@
 import { Router, Request, Response } from "express";
 import prisma from "../db.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const checkInsRouter = Router();
 
 // POST /api/check-ins - registrar visita
-checkInsRouter.post("/", async (req: Request, res: Response) => {
+checkInsRouter.post("/", asyncHandler(async (req: Request, res: Response) => {
   const { usuarioId, establecimientoId } = req.body;
 
   if (!usuarioId || !establecimientoId) {
@@ -44,10 +45,10 @@ checkInsRouter.post("/", async (req: Request, res: Response) => {
   });
 
   res.status(201).json(checkIn);
-});
+}));
 
 // GET /api/check-ins/mis-checkins?usuarioId=
-checkInsRouter.get("/mis-checkins", async (req: Request, res: Response) => {
+checkInsRouter.get("/mis-checkins", asyncHandler(async (req: Request, res: Response) => {
   const { usuarioId } = req.query;
 
   if (!usuarioId) {
@@ -70,4 +71,4 @@ checkInsRouter.get("/mis-checkins", async (req: Request, res: Response) => {
   });
 
   res.json(checkIns);
-});
+}));

@@ -1,10 +1,11 @@
 import { Router, Request, Response } from "express";
 import prisma from "../db.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const valoracionesRouter = Router();
 
 // POST /api/valoraciones - dejar valoración
-valoracionesRouter.post("/", async (req: Request, res: Response) => {
+valoracionesRouter.post("/", asyncHandler(async (req: Request, res: Response) => {
   const { checkInId, puntuacion, etiquetas, comentario, establecimientoId } = req.body;
 
   if (!checkInId || !puntuacion || !establecimientoId) {
@@ -46,10 +47,10 @@ valoracionesRouter.post("/", async (req: Request, res: Response) => {
   });
 
   res.status(201).json(valoracion);
-});
+}));
 
 // GET /api/valoraciones/establecimiento/:id
-valoracionesRouter.get("/establecimiento/:id", async (req: Request, res: Response) => {
+valoracionesRouter.get("/establecimiento/:id", asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const valoraciones = await prisma.valoracion.findMany({
@@ -70,4 +71,4 @@ valoracionesRouter.get("/establecimiento/:id", async (req: Request, res: Respons
     etiquetas: JSON.parse(v.etiquetas as string),
   }));
   res.json(resultado);
-});
+}));
