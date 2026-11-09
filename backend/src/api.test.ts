@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
+import { signCheckInToken, verifyAndConsumeCheckInToken } from "./utils/qrToken.js";
 
 process.env.NODE_ENV = "test";
 process.env.DATABASE_URL = process.env.DATABASE_URL || "file:./prisma/dev.db";
@@ -65,5 +66,15 @@ describe("contratos API (sin dependencia de BD)", () => {
     }
     expect(last).toBe(429);
     if (prev) process.env.REPORT_API_KEY = prev; else delete process.env.REPORT_API_KEY;
+  });
+
+  it("QR token anti-replay: segundo uso rechazado (token_replayed)", () => {
+    process.env.QR_SIGNING_SECRET = "test-qr-secret";
+    const { token } = signCheckInToken("est-test", 300);
+    const a = verifyAndConsumeCheckInToken(token);
+    expect(a.ok).toBe(true);
+    const b = verifyAndConsumeCheckInToken(token);
+    expect(b.ok).toBe(false);
+    if (!b.ok) expect(b.error).toBe("token_replayed");
   });
 });
