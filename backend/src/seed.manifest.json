@@ -1,0 +1,8 @@
+{
+  "procedencia": "sintético/demo",
+  "contract_version": "parada-viva-seed/0.1",
+  "description": "Datos de ejemplo para desarrollo/MVP. Ubicaciones/nombres de referencia ilustrativa; NO son partners verificados ni cobertura operativa real.",
+  "pii": "none",
+  "real_data_requires": "docs/INGESTION_SOURCE_TEMPLATE.md (workspace) + D9 + verificación partners",
+  "generated_at": "2026-11-09"
+}

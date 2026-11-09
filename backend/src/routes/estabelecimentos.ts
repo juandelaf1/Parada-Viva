@@ -55,6 +55,8 @@ router.get(
         lng: z.coerce.number().min(-180).max(180),
         radiusKm: z.coerce.number().positive().max(200).default(25),
         limit: z.coerce.number().int().positive().max(100).default(30),
+        offset: z.coerce.number().int().min(0).max(10000).default(0),
+        servicios: z.string().optional(), // csv ids: agua,bano,recarga (electricidad->recarga)
       })
       .safeParse(req.query);
     if (!q.success) {
@@ -65,7 +67,12 @@ router.get(
       });
       return;
     }
-    const { lat, lng, radiusKm, limit } = q.data;
+    const { lat, lng, radiusKm, limit, offset, servicios } = q.data;
+    const wanted = (servicios || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+      .map((s) => (s === "electricidad" ? "recarga" : s === "baño" || s === "ba\u00f1o" ? "bano" : s));
     const box = bbox(lat, lng, radiusKm);
     const rows = await prisma.establecimiento.findMany({
       where: {
@@ -89,13 +96,20 @@ router.get(
         };
       })
       .filter((e) => e.distanceKm <= radiusKm)
+      .filter((e) => {
+        if (!wanted.length) return true;
+        const ids = new Set((e.servicios || []).map((s: any) => String(s.id || "").toLowerCase()));
+        return wanted.every((w) => ids.has(w));
+      })
       .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, limit);
+      .slice(offset, offset + limit);
     res.json({
       items,
       count: items.length,
       center: { lat, lng },
       radiusKm,
+      offset,
+      filtros: { servicios: wanted },
       procedencia: "calculado_servidor (haversine sobre coords registradas; establecimientos=observado si son reales, demo si seed sintético)",
       contract_version: "parada-viva-api/0.1",
     });

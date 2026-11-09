@@ -73,7 +73,7 @@ const comercios = [
 ];
 
 async function seed() {
-  console.log("🌱 Sembrando base de datos...");
+  console.log("🌱 Sembrando base de datos (procedencia: SINTÉTICO/DEMO — sin partners verificados, solo desarrollo/MVP; no usar como dato real P1)...");
 
   await prisma.valoracion.deleteMany();
   await prisma.checkIn.deleteMany();
@@ -86,7 +86,7 @@ async function seed() {
     console.log(`  ✅ ${c.nombre}`);
   }
 
-  console.log("🌱 Semilla completada");
+  console.log("🌱 Semilla completada (etiqueta: sintético/demo). Para datos reales usar ficha de ingesta (INGESTION_SOURCE_TEMPLATE) — D9.");
 }
 
 seed()
