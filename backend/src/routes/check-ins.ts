@@ -5,11 +5,13 @@ import prisma from "../db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { validateBody } from "../utils/validate.js";
 import { rateLimit } from "../utils/rateLimit.js";
+import { signCheckInToken, verifyCheckInToken } from "../utils/qrToken.js";
 
 const CheckInCreate = z.object({
-  usuarioId: z.string().min(1),
-  establecimientoId: z.string().min(1),
-});
+  usuarioId: z.string().min(1).optional(),
+  establecimientoId: z.string().min(1).optional(),
+  token: z.string().min(1).optional(),
+}).refine((d) => (d.token || d.establecimientoId), { message: "token o establecimientoId requerido" });
 
 export const checkInsRouter = Router();
 
@@ -19,7 +21,29 @@ checkInsRouter.post(
   rateLimit({ windowMs: 60_000, max: 30 }),
   validateBody(CheckInCreate),
   asyncHandler(async (req: Request, res: Response) => {
-    const { usuarioId, establecimientoId } = req.body;
+    const body = req.body as { usuarioId?: string; establecimientoId?: string; token?: string };
+    let establecimientoId = body.establecimientoId;
+    if (body.token) {
+      const v = verifyCheckInToken(body.token);
+      if (!v.ok) {
+        res.status(400).json({ error: `token_error:${v.error}`, contract_version: "parada-viva-api/0.1" });
+        return;
+      }
+      establecimientoId = v.establecimientoId;
+    }
+
+    // Resolver usuario: preferir identidad por cabecera; fallback body (legacy/D8)
+    let usuarioId = body.usuarioId;
+    const email = req.headers["x-user-email"] as string;
+    if (email) {
+      const u = await prisma.usuario.findUnique({ where: { email } });
+      if (!u) { res.status(404).json({ error: "Usuario no encontrado", contract_version: "parada-viva-api/0.1" }); return; }
+      usuarioId = u.id;
+    }
+    if (!usuarioId || !establecimientoId) {
+      res.status(400).json({ error: "usuarioId y establecimientoId (o token) requeridos", contract_version: "parada-viva-api/0.1" });
+      return;
+    }
 
   // Verificar que el establecimiento existe y está activo
   const establecimiento = await prisma.establecimiento.findUnique({
@@ -112,14 +136,17 @@ checkInsRouter.get(
       return;
     }
     const base = process.env.PUBLIC_BASE_URL || "https://parada-viva.local";
-    const payload = `${base}/check-in/${encodeURIComponent(est.id)}`;
+    const signed = signCheckInToken(est.id, 15 * 60);
+    const payload = `${base}/check-in/${encodeURIComponent(est.id)}?t=${encodeURIComponent(signed.token)}`;
     const dataUrl = await QRCode.toDataURL(payload, { margin: 1, width: 256 });
     res.json({
       establecimientoId: est.id,
       nombre: est.nombre,
       payload,
+      token: signed.token,
+      exp: signed.exp,
       qr_data_url: dataUrl,
-      procedencia: "generado_servidor (MVP, sin firma; rotación/firmado en backlog)",
+      procedencia: "generado_servidor (HMAC+exp; anti-replay completo en backlog D8)",
       contract_version: "parada-viva-api/0.1",
     });
   })

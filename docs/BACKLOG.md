@@ -12,9 +12,9 @@
 - [x] Documentación: decisiones/backlog/roadmap/agentes — (este lote)
 
 ## En curso / siguiente (incremental, seguro)
-- [ ] **Nearby**: `GET /api/establecimientos/nearby?lat=&lng=&radiusKm=&limit=` (Haversine+bbox), `contract_version`/procedencia.
-- [ ] **Ofuscación de coordenadas** (helper configurable) + política de precisión en respuestas sensibles.
-- [ ] **QR firmado** HMAC+`exp` (env secret) + verificación en check-in; compat con QR actual.
+- [x] **Nearby**: `GET /api/establecimientos/nearby?lat=&lng=&radiusKm=&limit=` (Haversine+bbox), `contract_version`/procedencia. — `7b0e441`
+- [x] **Ofuscación de coordenadas** (helper configurable en `utils/geo.ts`, env `COORD_OBFUSCATE_DECIMALS`) — `7b0e441` *(aplicar en respuestas sensibles con D8)*
+- [x] **QR firmado** HMAC+`exp` (`utils/qrToken.ts`, `QR_SIGNING_SECRET`) + verificación en `POST /api/check-ins` (token o flujo legacy), QR endpoint devuelve `token/exp`; compat. — (este lote) *(anti-replay/nonce completo en D8)*
 - [ ] Zod/validación consistente en rutas restantes; límites/paginación.
 - [ ] Contrato/procedencia aditivo en respuestas de dominio; OpenAPI stub actualizado.
 - [ ] Tests API (supertest/vitest): health/ready, validación 400, 429, QR, nearby, privacidad.
