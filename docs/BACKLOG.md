@@ -14,10 +14,10 @@
 ## En curso / siguiente (incremental, seguro)
 - [x] **Nearby**: `GET /api/establecimientos/nearby?lat=&lng=&radiusKm=&limit=` (Haversine+bbox), `contract_version`/procedencia. — `7b0e441`
 - [x] **Ofuscación de coordenadas** (helper configurable `utils/geo.ts`, `COORD_OBFUSCATE_DECIMALS`; toggle `OBFUSCATE_PUBLIC_COORDS`, **off por defecto** para no romper mapa) — `7b0e441`,(este lote) *(aplicar política D8 en ubicaciones sensibles)*
-- [x] **QR firmado** HMAC+`exp` (`utils/qrToken.ts`, `QR_SIGNING_SECRET`) + verificación en `POST /api/check-ins` (token o flujo legacy), QR endpoint devuelve `token/exp`; compat. — `163b689` *(anti-replay/nonce completo en D8)*
+- [x] **QR firmado** HMAC+`exp`+`jti` (`utils/qrToken.ts`, `QR_SIGNING_SECRET`) + verificación+consumo (anti-replay in-memory MVP) en `POST /api/check-ins`; compat legacy. — `163b689`,(este lote) *(distribuido/nonce robusto en D8)*
 - [x] Validación/paginación/filtros servicios en listados (general + nearby, compat, headers `X-Total-Count`/`X-Contract-Version`). — (este lote)
 - [x] Contrato/procedencia aditivo en respuestas de dominio; OpenAPI stub alineado. — `c6e8f71`
-- [x] **Volcado/informes agregados (sin PII):** `/api/reports/summary`, `/api/reports/establishments?format=json|csv` protegidos por `X-Report-Key` (`REPORT_API_KEY`, stopgap D8); `procedencia`/`pii:none`. — `7fceae6`
+- [x] **Volcado/informes agregados (sin PII):** `/api/reports/summary`, `/api/reports/establishments`, `/api/reports/checkins` (rango `from/to`) en JSON/CSV, protegidos por `X-Report-Key` (stopgap D8); `procedencia`/`pii:none`. — `7fceae6`,(este lote)
 - [x] Tests API: health/ready, 400, 401/503 reports, 404, privacidad, **429**, + DB-backed (nearby+filtros, QR firmado/404, reports summary/CSV sin PII). — `7fceae6`,(este lote)
 - [x] Seed/fixtures etiquetados `sintético/demo` (manifest + logs P1). — `c6e8f71`
 - [x] OpenAPI stub alineado (nearby/ready/reports/QR/token). — `c6e8f71`

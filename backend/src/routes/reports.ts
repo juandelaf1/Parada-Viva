@@ -57,6 +57,60 @@ reportsRouter.get(
   })
 );
 
+// GET /api/reports/checkins?from=&to=&format=json|csv — agregado temporal/por establecimiento (sin PII)
+reportsRouter.get(
+  "/checkins",
+  rateLimit({ windowMs: 60_000, max: 30 }),
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!requireReportKey(req, res)) return;
+    const q = z.object({
+      from: z.string().datetime().optional(),
+      to: z.string().datetime().optional(),
+      format: z.enum(["json", "csv"]).default("json"),
+    }).safeParse(req.query);
+    if (!q.success) {
+      res.status(400).json({ error: "validation_error", details: q.error.issues, contract_version: "parada-viva-api/0.1" });
+      return;
+    }
+    const { from, to, format } = q.data;
+    const where: any = {};
+    if (from || to) {
+      where.creadoEn = {};
+      if (from) where.creadoEn.gte = new Date(from);
+      if (to) where.creadoEn.lte = new Date(to);
+    }
+    // Agregado por establecimiento (sin IDs/PII de usuario)
+    const grouped = await prisma.checkIn.groupBy({
+      by: ["establecimientoId"],
+      where,
+      _count: { _all: true },
+    });
+    const ids = grouped.map((g) => g.establecimientoId);
+    const ests = ids.length ? await prisma.establecimiento.findMany({ where: { id: { in: ids } }, select: { id: true, nombre: true } }) : [];
+    const nameById = new Map(ests.map((e) => [e.id, e.nombre]));
+    const items = grouped.map((g) => ({
+      establecimiento_id: g.establecimientoId,
+      nombre: nameById.get(g.establecimientoId) || null,
+      check_ins: g._count._all,
+    })).sort((a, b) => b.check_ins - a.check_ins);
+    if (format === "csv") {
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", "attachment; filename=parada-viva-checkins-report.csv");
+      res.send(toCsv(items));
+      return;
+    }
+    res.json({
+      contract_version: "parada-viva-api/0.1",
+      procedencia: "agregado_servidor (por establecimiento; sin PII; puede incluir sintético/demo)",
+      pii: "none",
+      range: { from: from || null, to: to || null },
+      count: items.length,
+      total_check_ins: items.reduce((s, i) => s + i.check_ins, 0),
+      items,
+    });
+  })
+);
+
 // GET /api/reports/establishments?format=json|csv — agregado por establecimiento (sin PII)
 reportsRouter.get(
   "/establishments",

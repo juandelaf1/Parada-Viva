@@ -62,7 +62,7 @@ paths:
         '404': { description: not_found }
   /api/check-ins:
     post:
-      summary: Registrar check-in (legacy body o token QR firmado)
+      summary: Registrar check-in (legacy body o token QR firmado HMAC+exp+jti)
       requestBody:
         content:
           application/json:
@@ -71,10 +71,10 @@ paths:
               properties:
                 usuarioId: { type: string }
                 establecimientoId: { type: string }
-                token: { type: string, description: "QR HMAC+exp (alternativa a establecimientoId)" }
+                token: { type: string, description: "QR HMAC+exp+jti; verificado y consumido (anti-replay in-memory MVP)" }
       responses:
         '201': { description: Created }
-        '400': { description: validation_error / token_error }
+        '400': { description: validation_error / token_error (incl. token_replayed) }
         '404': { description: not_found }
         '409': { description: check-in duplicado hoy }
         '429': { description: rate_limit_exceeded }
@@ -130,6 +130,19 @@ paths:
         - { name: format, in: query, schema: { type: string, enum: [json, csv], default: json } }
       responses:
         '200': { description: OK (JSON o CSV attachment) }
+        '401': { description: clave incorrecta }
+        '503': { description: REPORT_API_KEY no configurada }
+  /api/reports/checkins:
+    get:
+      summary: Check-ins agregados por establecimiento y rango (sin PII)
+      security: [{ ReportKey: [] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: format, in: query, schema: { type: string, enum: [json, csv], default: json } }
+      responses:
+        '200': { description: OK (agregado, pii:none) }
+        '400': { description: validation_error }
         '401': { description: clave incorrecta }
         '503': { description: REPORT_API_KEY no configurada }
 components:

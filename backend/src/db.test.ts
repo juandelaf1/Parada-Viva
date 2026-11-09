@@ -108,4 +108,15 @@ describe("API con BD de test (happy paths)", () => {
     expect(res.text).toContain("establecimiento_id");
     expect(res.text).not.toContain("@"); // heurística: sin emails/PII obvia
   });
+
+  it("reports checkins (agregado, sin PII): con clave válida", async () => {
+    const app = await getApp();
+    const res = await request(app)
+      .get("/api/reports/checkins")
+      .set("x-report-key", "test-report-key");
+    expect(res.status).toBe(200);
+    expect(res.body.pii).toBe("none");
+    expect(Array.isArray(res.body.items)).toBe(true);
+    expect(res.body.contract_version).toBe("parada-viva-api/0.1");
+  });
 });

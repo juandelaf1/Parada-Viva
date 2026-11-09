@@ -5,7 +5,7 @@ import prisma from "../db.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { validateBody } from "../utils/validate.js";
 import { rateLimit } from "../utils/rateLimit.js";
-import { signCheckInToken, verifyCheckInToken } from "../utils/qrToken.js";
+import { signCheckInToken, verifyAndConsumeCheckInToken } from "../utils/qrToken.js";
 
 const CheckInCreate = z.object({
   usuarioId: z.string().min(1).optional(),
@@ -24,7 +24,7 @@ checkInsRouter.post(
     const body = req.body as { usuarioId?: string; establecimientoId?: string; token?: string };
     let establecimientoId = body.establecimientoId;
     if (body.token) {
-      const v = verifyCheckInToken(body.token);
+      const v = verifyAndConsumeCheckInToken(body.token);
       if (!v.ok) {
         res.status(400).json({ error: `token_error:${v.error}`, contract_version: "parada-viva-api/0.1" });
         return;
@@ -146,7 +146,7 @@ checkInsRouter.get(
       token: signed.token,
       exp: signed.exp,
       qr_data_url: dataUrl,
-      procedencia: "generado_servidor (HMAC+exp; anti-replay completo en backlog D8)",
+      procedencia: "generado_servidor (HMAC+exp+jti; anti-replay in-memory MVP, no distribuido — D8 para prod)",
       contract_version: "parada-viva-api/0.1",
     });
   })
