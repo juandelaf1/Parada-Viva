@@ -18,8 +18,10 @@
 - [ ] Zod/validación consistente en rutas restantes; límites/paginación.
 - [ ] Contrato/procedencia aditivo en respuestas de dominio; OpenAPI stub actualizado.
 - [x] **Volcado/informes agregados (sin PII):** `/api/reports/summary`, `/api/reports/establishments?format=json|csv` protegidos por `X-Report-Key` (`REPORT_API_KEY`, stopgap D8); `procedencia`/`pii:none`. — (este lote)
-- [x] Tests API (supertest/vitest): health/ready, validación 400, 401/503 reports, 404 JSON, privacidad `mis-checkins` (parcial, sin BD). — (este lote) *(pendiente: 429, QR/nearby con BD de test)*
-- [ ] Seed/fixtures etiquetados `sintético/demo` (separados de reales).
+- [x] Tests API (supertest/vitest): health/ready, validación 400, 401/503 reports, 404 JSON, privacidad `mis-checkins`. — `7fceae6`
+- [x] **Harness BD de test** (SQLite tmp + `prisma db push` en setup, `DATABASE_URL` por env) + tests DB-backed: nearby+filtros, QR firmado/404, reports summary/CSV (sin PII). — (este lote) *(pendiente: 429)*
+- [x] Seed/fixtures etiquetados `sintético/demo` (manifest + logs P1). — `c6e8f71`
+- [x] OpenAPI stub alineado (nearby/ready/reports/QR/token). — `c6e8f71`
 
 ## MVP producto (requiere D8/D9/decisiones)
 - [ ] Auth real (magic link/OIDC), eliminar `x-user-email` spoofable y fallback `usuarioId`.
