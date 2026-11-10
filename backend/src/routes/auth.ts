@@ -35,14 +35,14 @@ authRouter.get("/me", asyncHandler(async (req: Request, res: Response) => {
   const email = req.headers["x-user-email"] as string;
 
   if (!email) {
-    res.status(401).json({ error: "No autenticado" });
+    res.status(401).json({ error: "No autenticado", contract_version: "parada-viva-api/0.1" });
     return;
   }
 
   const usuario = await prisma.usuario.findUnique({ where: { email } });
 
   if (!usuario) {
-    res.status(404).json({ error: "Usuario no encontrado" });
+    res.status(404).json({ error: "Usuario no encontrado", contract_version: "parada-viva-api/0.1" });
     return;
   }
 

@@ -7,6 +7,7 @@ import { router as estabelecimentosRouter } from "./routes/estabelecimentos.js";
 import { checkInsRouter } from "./routes/check-ins.js";
 import { valoracionesRouter } from "./routes/valoraciones.js";
 import { reportsRouter } from "./routes/reports.js";
+import { accessAuditMiddleware } from "./utils/accessAudit.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -30,6 +31,9 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Auditoría de accesos sensibles sin PII (pre-D8). ACCESS_AUDIT=off para desactivar.
+app.use(accessAuditMiddleware as any);
 
 app.get("/api/health", (_req, res) => {
   res.json({

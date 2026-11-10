@@ -51,7 +51,7 @@ checkInsRouter.post(
   });
 
   if (!establecimiento || !establecimiento.activo) {
-    res.status(404).json({ error: "Establecimiento no encontrado o inactivo" });
+    res.status(404).json({ error: "Establecimiento no encontrado o inactivo", contract_version: "parada-viva-api/0.1" });
     return;
   }
 
@@ -68,7 +68,7 @@ checkInsRouter.post(
   });
 
   if (existente) {
-    res.status(409).json({ error: "Ya has hecho check-in aquí hoy" });
+    res.status(409).json({ error: "Ya has hecho check-in aquí hoy", contract_version: "parada-viva-api/0.1" });
     return;
   }
 

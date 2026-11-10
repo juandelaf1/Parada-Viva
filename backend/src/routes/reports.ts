@@ -7,17 +7,51 @@ import { rateLimit } from "../utils/rateLimit.js";
 export const reportsRouter = Router();
 
 // Stopgap (D8): protege exportes agregados. No sustituye auth real.
-function requireReportKey(req: Request, res: Response): boolean {
-  const expected = process.env.REPORT_API_KEY;
-  if (!expected) {
-    res.status(503).json({ error: "reports_not_configured", hint: "set REPORT_API_KEY", contract_version: "parada-viva-api/0.1" });
-    return false;
+// Modos (compat por defecto): REPORTS_AUTH_MODE=key|role|hybrid
+// - key (default): exige x-report-key == REPORT_API_KEY
+// - role: stub detrás de AUTH_ROLES_ENABLED=true, acepta x-user-role en REPORTS_ALLOWED_ROLES
+// - hybrid: acepta key o rol válido
+function requireReportsAccess(req: Request, res: Response): boolean {
+  const mode = (process.env.REPORTS_AUTH_MODE || "key").toLowerCase();
+  const allowRoles = (process.env.REPORTS_ALLOWED_ROLES || "admin,auditor")
+    .split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
+  const rolesEnabled = process.env.AUTH_ROLES_ENABLED === "true";
+
+  const keyOk = (() => {
+    const expected = process.env.REPORT_API_KEY;
+    if (!expected) return { configured: false, ok: false } as const;
+    return { configured: true, ok: req.headers["x-report-key"] === expected } as const;
+  })();
+
+  const rawRole = req.headers["x-user-role"];
+  const role = (Array.isArray(rawRole) ? rawRole[0] : rawRole)?.toString().toLowerCase();
+  const roleOk = rolesEnabled && !!role && allowRoles.includes(role);
+
+  if (mode === "role") {
+    if (!rolesEnabled) {
+      res.status(503).json({ error: "reports_not_configured", hint: "set AUTH_ROLES_ENABLED=true and REPORTS_ALLOWED_ROLES", contract_version: "parada-viva-api/0.1" });
+      return false;
+    }
+    if (!roleOk) { res.status(401).json({ error: "unauthorized", contract_version: "parada-viva-api/0.1" }); return false; }
+    return true;
   }
-  const got = req.headers["x-report-key"];
-  if (got !== expected) {
+
+  if (mode === "hybrid") {
+    if (keyOk.ok || roleOk) return true;
+    if (!keyOk.configured && !rolesEnabled) {
+      res.status(503).json({ error: "reports_not_configured", hint: "set REPORT_API_KEY or enable AUTH_ROLES_ENABLED", contract_version: "parada-viva-api/0.1" });
+      return false;
+    }
     res.status(401).json({ error: "unauthorized", contract_version: "parada-viva-api/0.1" });
     return false;
   }
+
+  // default: key
+  if (!keyOk.configured) {
+    res.status(503).json({ error: "reports_not_configured", hint: "set REPORT_API_KEY", contract_version: "parada-viva-api/0.1" });
+    return false;
+  }
+  if (!keyOk.ok) { res.status(401).json({ error: "unauthorized", contract_version: "parada-viva-api/0.1" }); return false; }
   return true;
 }
 
@@ -36,7 +70,7 @@ reportsRouter.get(
   "/summary",
   rateLimit({ windowMs: 60_000, max: 30 }),
   asyncHandler(async (req: Request, res: Response) => {
-    if (!requireReportKey(req, res)) return;
+    if (!requireReportsAccess(req, res)) return;
     const [establecimientos, checkIns, valoraciones, rating] = await Promise.all([
       prisma.establecimiento.count({ where: { activo: true } }),
       prisma.checkIn.count(),
@@ -62,7 +96,7 @@ reportsRouter.get(
   "/checkins",
   rateLimit({ windowMs: 60_000, max: 30 }),
   asyncHandler(async (req: Request, res: Response) => {
-    if (!requireReportKey(req, res)) return;
+    if (!requireReportsAccess(req, res)) return;
     const q = z.object({
       from: z.string().datetime().optional(),
       to: z.string().datetime().optional(),
@@ -116,7 +150,7 @@ reportsRouter.get(
   "/ratings",
   rateLimit({ windowMs: 60_000, max: 30 }),
   asyncHandler(async (req: Request, res: Response) => {
-    if (!requireReportKey(req, res)) return;
+    if (!requireReportsAccess(req, res)) return;
     const q = z.object({ format: z.enum(["json", "csv"]).default("json") }).safeParse(req.query);
     const fmt = q.success ? q.data.format : "json";
     const rows = await prisma.establecimiento.findMany({
@@ -162,7 +196,7 @@ reportsRouter.get(
   "/activity",
   rateLimit({ windowMs: 60_000, max: 30 }),
   asyncHandler(async (req: Request, res: Response) => {
-    if (!requireReportKey(req, res)) return;
+    if (!requireReportsAccess(req, res)) return;
     const q = z.object({
       from: z.string().datetime().optional(),
       to: z.string().datetime().optional(),
@@ -215,7 +249,7 @@ reportsRouter.get(
   "/establishments",
   rateLimit({ windowMs: 60_000, max: 30 }),
   asyncHandler(async (req: Request, res: Response) => {
-    if (!requireReportKey(req, res)) return;
+    if (!requireReportsAccess(req, res)) return;
     const q = z.object({
       format: z.enum(["json", "csv"]).default("json"),
       minCheckIns: z.coerce.number().int().min(0).default(0),

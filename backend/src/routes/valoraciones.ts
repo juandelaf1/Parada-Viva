@@ -28,7 +28,12 @@ valoracionesRouter.post(
   });
 
   if (!checkIn) {
-    res.status(404).json({ error: "Check-in no encontrado" });
+    res.status(404).json({ error: "Check-in no encontrado", contract_version: "parada-viva-api/0.1" });
+    return;
+  }
+
+  if (checkIn.establecimientoId !== establecimientoId) {
+    res.status(400).json({ error: "establecimientoId no coincide con el check-in", contract_version: "parada-viva-api/0.1" });
     return;
   }
 
@@ -37,7 +42,7 @@ valoracionesRouter.post(
   });
 
   if (valoracionExistente) {
-    res.status(409).json({ error: "Este check-in ya tiene valoración" });
+    res.status(409).json({ error: "Este check-in ya tiene valoración", contract_version: "parada-viva-api/0.1" });
     return;
   }
 
