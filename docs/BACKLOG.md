@@ -21,6 +21,7 @@
 - [x] Tests API: health/ready, 400, 401/503 reports, 404, privacidad, **429**, + DB-backed (nearby+filtros, QR firmado/404, reports summary/CSV sin PII). — `7fceae6`,(este lote)
 - [x] Seed/fixtures etiquetados `sintético/demo` (manifest + logs P1). — `c6e8f71`
 - [x] OpenAPI stub alineado (nearby/ready/reports/QR/token). — `c6e8f71`
+- [x] **Pre-D8 (sin dependencias externas):** auditoría de accesos sensibles **sin PII** (JSON stdout, `ACCESS_AUDIT`), stubs auth/roles detrás de flags (`AUTH_MODE`,`AUTH_ROLES_ENABLED`,`REPORTS_AUTH_MODE=key|role|hybrid`,`REPORTS_ALLOWED_ROLES`) manteniendo compat, validación/contrato residual (consistencia check-in↔establecimiento, `contract_version` en errores). — `7d4bcd8`
 
 ## MVP producto (requiere D8/D9/decisiones)
 - [ ] Auth real (magic link/OIDC), eliminar `x-user-email` spoofable y fallback `usuarioId`.
